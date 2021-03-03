@@ -40,6 +40,7 @@ if __name__ == "__main__":
             #ADJUST AND ROUND NEW STATE
             #UPDATE q
             #ADD REWARD TO EPISODE_REWARDS
+            #Lower epsilon some amount or check to lower epsilon if episode % SOME_VALUE == 0
         
         #ADD EPISODE REWARD TO TOTAL_EPISODE_REWARDS
 
@@ -47,3 +48,6 @@ if __name__ == "__main__":
     #Save the trained q matrix 
     with open("td_q_matrix.pickle", "wb") as f:
         pickle.dump(q, f)
+
+
+    #Plot results with matplot lib
