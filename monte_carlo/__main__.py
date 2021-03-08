@@ -52,11 +52,10 @@ if __name__ == "__main__":
             #UPDATE
             episode_memory_sar.append((state, action, reward))
             
-            # increment how many times we have been in this state/action ????
-            # qq[state][action][0] += 1
-            
-            # increase total rewards we have received in this state/action ????
-            # qq[state][action][1] += reward
+            # initialize count and total reward in first episode
+            if episode == 0:
+                qq[state][action][0] = 1
+                qq[state][action][1] = reward
             
             #ADD REWARD TO EPISODE_REWARDS
             episode_rewards += reward
@@ -65,25 +64,25 @@ if __name__ == "__main__":
             state = next_state
         
         
-        # calculate Qt based by iterating backward through `episode_memory_sar`
+        # calculate discounted_reward based by iterating backward through `episode_memory_sar`
         first = True
-        episode_memory_saq = [] # stores the (state, action, estimated_reward) tuple
-        est_reward = 0
+        episode_memory_sad = [] # stores the (state, action, discounted_reward) tuple
+        discounted_reward = 0
         for state, action, reward in reversed(episode_memory_sar):
             if first:
                 first = False
             else:
-                # q[state][action] = q[state][action] + alpha * (Gt - q[state][action])
                 qq[state][action][0] += 1
-                qq[state][action][1] += est_reward
-                episode_memory_saq.append((state, action, est_reward))    
-            est_reward = reward + (gamma * est_reward)    
-        episode_memory_saq.reverse()  
+                qq[state][action][1] += discounted_reward
+            episode_memory_sad.append((state, action, discounted_reward))  
+            discounted_reward = reward + (gamma * discounted_reward)      
+        episode_memory_sad.reverse()
           
-        # update q table based on values in `episode_memory_saq` and qq table
-        for state, action, est_reward in episode_memory_saq:
-            Gt = qq[state][action][1]/qq[state][action][0]
-            q[state][action] = q[state][action] + alpha * (Gt - q[state][action])
+        # update q table based on values in `episode_memory_sad` and qq table
+        for state, action, discounted_reward in episode_memory_sad:
+            q[state][action] = qq[state][action][1]/qq[state][action][0]
+            # Gt = qq[state][action][1]/qq[state][action][0]
+            # q[state][action] = q[state][action] + alpha * (Gt - q[state][action])
             
         
         
