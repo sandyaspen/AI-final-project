@@ -1,4 +1,5 @@
 import numpy as np
+import matplotlib.pyplot as plt
 import random
 import gym
 import sys
@@ -105,3 +106,11 @@ if __name__ == "__main__":
 
     #Plot results with matplot lib
     print(total_episode_rewards)
+    to_plot = total_episode_rewards[0:EPISODES:50]
+    fig, ax = plt.subplots()
+    ax.plot(range(0,EPISODES,50), to_plot)
+    ax.set(xlabel='Episode number', ylabel='Rewards recieved during episode',
+        title="Temporal Difference Learning Results")
+    ax.grid()
+    fig.savefig("TDresults.png")
+    plt.show()
