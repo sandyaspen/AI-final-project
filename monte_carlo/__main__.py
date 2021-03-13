@@ -1,62 +1,62 @@
 import numpy as np
-import matplotlib.pyplot as plt
 import random
 import gym
 import sys
-import pickle
-from os import path
+import math
 
 
 EPISODES = 5000
 LEARNING_RATE = 0.2
-DISCOUNT = 0.9
+DISCOUNT = 1
 EPSILON = 1
-EPSILON_DECAY = 0.999
+EPSILON_DECAY = 0.997
+import pandas as pd
+
+
+env = gym.make('CartPole-v1')
+
+
+cart_position_bins = pd.cut([env.observation_space.low[0], env.observation_space.high[0]], bins=5, retbins=True)[1]
+cart_velocity_bins = pd.cut([env.observation_space.low[1], env.observation_space.high[1]], bins=5, retbins=True)[1]
+pole_angle_bins = pd.cut([env.observation_space.low[2], env.observation_space.high[2]], bins=10, retbins=True)[1]
+pole_angular_velocity_bins = pd.cut([env.observation_space.low[3], env.observation_space.high[3]], bins=10, retbins=True)[1]
+
+def discretize(state):
+    return (pd.cut([state[0]], cart_position_bins, labels=[0,1,2,3,4])[0], 
+            pd.cut([state[1]], cart_velocity_bins, labels=[0,1,2,3,4])[0], 
+            pd.cut([state[2]], pole_angle_bins, labels=[0,1,2,3,4,5,6,7,8,9])[0], 
+            pd.cut([state[3]], pole_angular_velocity_bins, labels=[0,1,2,3,4,5,6,7,8,9])[0])
+
 
 if __name__ == "__main__":
-    if len(sys.argv) > 1 and sys.argv[1] == "load":
-        if path.exists("mc_q_matrix.pickle"):
-            with open("mc_q_matrix.pickle", "rb") as f:
-                q = pickle.load(f)
-        if path.exists("td_qq_matrix.pickle"):
-            with open("td_qq_matrix.pickle", "rb") as f:
-                q = pickle.load(f)
-    else:
-        q = np.zeros((18,15,3), dtype=float)
-        qq = np.zeros((18,15,3,2), dtype=float)
+    q = np.zeros((10,10,10,10,2), dtype=float)
+    qq = np.zeros((10,10,10,10,2,2), dtype=float)
 
-    env = gym.make('MountainCar-v0')
-    total_episode_rewards = []
+    print(env.observation_space.low)
+
     epsilon = EPSILON
-    alpha = LEARNING_RATE
-    gamma = DISCOUNT
     for episode in range(EPISODES):
         state = env.reset()
-        state = (int(round(state[0] - env.observation_space.low[0], 1) * 10), int(round(state[1] - env.observation_space.low[1], 2) * 100))
+        state = discretize(state)
         done = False
         episode_rewards = 0
         
-        episode_memory_sar = [] # stores the (state, action, reward) tuple
+        episode_memory = [] # stores the (state, action, reward) tuple
 
         while not done:
             if random.random() < epsilon:
                 action = env.action_space.sample()
             else:
                 action = np.argmax(q[state])
-            #PERFORM ACTION  
-            #COLLECT NEW STATE, REWARD, and DONE
+
+            #PERFORM ACTION & COLLECT NEW STATE, REWARD, and DONE
             next_state, reward, done, info = env.step(action)
             
             #ADJUST AND ROUND NEW STATE
-            next_state = (int(round(next_state[0] - env.observation_space.low[0], 1) * 10), int(round(next_state[1] - env.observation_space.low[1], 2) * 100))
+            next_state = discretize(next_state)
             
             #UPDATE
-            episode_memory_sar.append((state, action, reward))
-            
-            # initialize count and total reward in first episode
-            if episode == 0:
-                qq[state][action][0] = 1
-                qq[state][action][1] = reward
+            episode_memory.append((state, action, reward))
             
             #ADD REWARD TO EPISODE_REWARDS
             episode_rewards += reward
@@ -66,51 +66,16 @@ if __name__ == "__main__":
         
         
         # calculate discounted_reward based by iterating backward through `episode_memory_sar`
-        first = True
-        episode_memory_sad = [] # stores the (state, action, discounted_reward) tuple
         discounted_reward = 0
-        for state, action, reward in reversed(episode_memory_sar):
-            if first:
-                first = False
-            else:
-                qq[state][action][0] += 1
-                qq[state][action][1] += discounted_reward
-            episode_memory_sad.append((state, action, discounted_reward))  
-            discounted_reward = reward + (gamma * discounted_reward)      
-        episode_memory_sad.reverse()
-          
-        # update q table based on values in `episode_memory_sad` and qq table
-        for state, action, discounted_reward in episode_memory_sad:
+        for state, action, reward in episode_memory[::-1]:
+            discounted_reward = reward + (DISCOUNT * discounted_reward)      
+            qq[state][action][0] += 1
+            qq[state][action][1] += discounted_reward
             q[state][action] = qq[state][action][1]/qq[state][action][0]
-            # Gt = qq[state][action][1]/qq[state][action][0]
-            # q[state][action] = q[state][action] + alpha * (Gt - q[state][action])
-            
-        
-        
-        #Lower epsilon some amount
-        epsilon *= EPSILON_DECAY
+            #q[state][action] = q[state][action] + (LEARNING_RATE * (discounted_reward - q[state][action]))
+                    
+        #Decay Epsilon
+        epsilon = max(epsilon * EPSILON_DECAY, 0.1)
         
         #ADD EPISODE REWARD TO TOTAL_EPISODE_REWARDS
-        total_episode_rewards.append(episode_rewards)
         print("EPISODE: {}    REWARD: {}    EPSILON: {}".format(episode, episode_rewards, epsilon))
-
-
-    #Save the trained q matrix 
-    with open("mc_q_matrix.pickle", "wb") as f:
-        pickle.dump(q, f)
-        
-    #Save the trained qq matrix 
-    with open("mc_qq_matrix.pickle", "wb") as f:
-        pickle.dump(qq, f)
-
-
-    #Plot results with matplot lib
-    print(total_episode_rewards)
-    to_plot = total_episode_rewards[0:EPISODES:50]
-    fig, ax = plt.subplots()
-    ax.plot(range(0,EPISODES,50), to_plot)
-    ax.set(xlabel='Episode number', ylabel='Rewards recieved during episode',
-        title="Temporal Difference Learning Results")
-    ax.grid()
-    fig.savefig("TDresults.png")
-    plt.show()
