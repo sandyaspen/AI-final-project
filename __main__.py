@@ -10,7 +10,6 @@ parser.add_argument("--tune", type=bool, default=False, help="Defaults False, wh
 cpu_count = mp.cpu_count()
 #Don't use them all
 if cpu_count < 3: cpu_count = 1
-else: cpu_count = cpu_count % 10 # cap at ten, max we need
 
 
 TEST_COUNT = 5 
