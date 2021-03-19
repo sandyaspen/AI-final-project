@@ -1,10 +1,19 @@
 import argparse
 import numpy as np
+import matplotlib.pyplot as plt
+import multiprocessing as mp
 from temporal_difference import Temporal_Difference
 from monte_carlo import Monte_Carlo
 
 parser = argparse.ArgumentParser(description='Argument Processor')
 parser.add_argument("--tune", type=bool, default=False, help="Defaults False, whether to tune the hyperparameters")
+cpu_count = mp.cpu_count()
+#Don't use them all
+if cpu_count < 3: cpu_count = 1
+else: cpu_count = cpu_count % 10 # cap at ten, max we need
+
+
+TEST_COUNT = 25 
 
 
 def tune_hyperparameters():
@@ -52,18 +61,87 @@ def tune_hyperparameters():
 
 
 
-def run_both_methods():
-    td = Temporal_Difference()
-    mc = Monte_Carlo()
-    set_hyper_params()
-    td.run()
-    # mc.run()
-    # collect results
-    # plot results
+def full_test_monte_carlo():
+    episode_counts = list(range(500,5001,500))
+    
+    print("Running monte carlo test...")
+    #Start multiprocessing to speed up tests
+    with mp.Pool(processes=cpu_count) as pool:
+        results = pool.map(test_mc_5_times, episode_counts)
+    #unpack results
+    episodes, avg_rewards, stddev_rewards = zip(*results)    
+
+    #Plot
+    fig, ax = plt.subplots()
+    ax.errorbar(episodes, avg_rewards, yerr=stddev_rewards)
+    ax.set(xlabel='Number of Test Episodes',  ylabel='Average Rewards',
+        title="Monte Carlo Test Results")
+    ax.grid()
+    fig.savefig("MCresults.png")
+
+def test_mc_5_times(ep_count):
+    rewards = []
+    stddev = []
+    for test_num in range(TEST_COUNT):
+        mc = Monte_Carlo()
+        mc.train(ep_count)
+        _, _, test_rewards = mc.test(None, 500)
+        rewards.append(np.average(test_rewards))
+        stddev.append(np.std(test_rewards))
+    #Remove high and low trials
+    min_idx = rewards.index(min(rewards))
+    del rewards[min_idx]
+    del stddev[min_idx]
+    max_idx = rewards.index(max(rewards))
+    del rewards[max_idx]
+    del stddev[max_idx]
+    #Add average, stddev of these three to running list
+    return ep_count, np.average(rewards), np.average(stddev)
+
+
+
+def full_test_temporal_differnce():
+    episode_counts = list(range(500,5001,500))
+    
+    print("Running temporal difference test...")
+    #Start multiprocessing to speed up tests
+    with mp.Pool(processes=cpu_count) as pool:
+        results = pool.map(test_td_5_times, episode_counts)
+    #unpack results
+    episodes, avg_rewards, stddev_rewards = zip(*results)    
+
+    #Plot
+    fig, ax = plt.subplots()
+    ax.errorbar(episodes, avg_rewards, yerr=stddev_rewards)
+    ax.set(xlabel='Number of Test Episodes',  ylabel='Average Rewards',
+        title="Temporal Difference Test Results")
+    ax.grid()
+    fig.savefig("TDresults.png")
+
+def test_td_5_times(ep_count):
+    rewards = []
+    stddev = []
+    for test_num in range(TEST_COUNT):
+        td = Temporal_Difference()
+        td.train(ep_count)
+        _, test_rewards = td.test(None, 500)
+        rewards.append(np.average(test_rewards))
+        stddev.append(np.std(test_rewards))
+    #Remove high and low trials
+    min_idx = rewards.index(min(rewards))
+    del rewards[min_idx]
+    del stddev[min_idx]
+    max_idx = rewards.index(max(rewards))
+    del rewards[max_idx]
+    del stddev[max_idx]
+    #Add average, stddev of these three to running list
+    return ep_count, np.average(rewards), np.average(stddev)
+
 
 if __name__ == "__main__":
     args = parser.parse_args()
     if args.tune:
         tune_hyperparameters()
-    #run_both_methods()
+    full_test_temporal_differnce()
+    full_test_monte_carlo()
 

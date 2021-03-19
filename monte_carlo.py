@@ -6,7 +6,7 @@ import pandas as pd
 
 EPISODES = 2500
 LEARNING_RATE = 1
-DISCOUNT = .95
+DISCOUNT = .93
 EPSILON = 1
 
 
@@ -57,8 +57,8 @@ class Monte_Carlo:
         return self.run(training=False, episodes=episodes)
 
 
-    def train(self):
-        return self.run(training=True, episodes=self.episodes)
+    def train(self, episodes):
+        return self.run(training=True, episodes=episodes)
 
 
     def run(self, training, episodes):
@@ -112,11 +112,13 @@ class Monte_Carlo:
             
             #ADD EPISODE REWARD TO TOTAL_EPISODE_REWARDS
             total_episode_rewards.append(episode_rewards)
+            """
             if training:
                 print("EPISODE: {}    REWARD: {}    EPSILON: {}".format(episode, episode_rewards, epsilon), end='\r')
             else:
                 print("EPISODE: {}    REWARD: {}".format(episode, episode_rewards), end='\r')
         print()
+            """
         return self.q, self.qq, np.array(total_episode_rewards)
 
 
