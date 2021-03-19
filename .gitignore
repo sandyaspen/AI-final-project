@@ -2,3 +2,5 @@
 .vscode/
 *.pickle
 *.png
+keepers/
+__pycache__/
