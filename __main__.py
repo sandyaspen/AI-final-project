@@ -13,7 +13,7 @@ if cpu_count < 3: cpu_count = 1
 else: cpu_count = cpu_count % 10 # cap at ten, max we need
 
 
-TEST_COUNT = 25 
+TEST_COUNT = 5 
 
 
 def tune_hyperparameters():
