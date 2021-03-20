@@ -1,1 +1,1 @@
-An implementation of Temporal Difference on Monte Carlo reinforcement learning methods on openAI gym's Cart Pole environment.
+An implementation of Temporal Difference and Monte Carlo Reinforcement Learning methods on openAI gym's Cart Pole environment.
